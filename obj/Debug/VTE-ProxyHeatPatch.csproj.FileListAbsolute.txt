@@ -1,0 +1,8 @@
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\bin\Debug\VTE-ProxyHeatPatch.dll
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\bin\Debug\VTE-ProxyHeatPatch.pdb
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\obj\Debug\VTE-ProxyHeatPatch.csproj.AssemblyReference.cache
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\obj\Debug\VTE-ProxyHeatPatch.csproj.CoreCompileInputs.cache
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\obj\Debug\VTE-ProxyHeatPatch.dll
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\obj\Debug\VTE-ProxyHeatPatch.pdb
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\1.5\Assemblies\VTE-ProxyHeatPatch.dll
+C:\Users\weare\Documents\My Mods\RimWorld\ModCreation\VTE-ProxyHeatPatch\VTE-ProxyHeatPatch\1.5\Assemblies\VTE-ProxyHeatPatch.pdb
