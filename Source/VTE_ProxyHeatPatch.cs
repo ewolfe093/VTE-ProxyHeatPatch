@@ -2,9 +2,8 @@
 using Verse;
 using System.Collections.Generic;
 using System.Linq;
-using ProxyHeat;
 using System;
-using System.Reflection;
+using System.Reflection.Emit;
 
 namespace VTE_ProxyHeatPatch
 {
@@ -19,70 +18,96 @@ namespace VTE_ProxyHeatPatch
         }
     }
 
-    [HarmonyPatch(typeof(ProxyHeatManager), "GetTemperatureOutcomeFor")]
+    [HarmonyPatch(typeof(ProxyHeat.ProxyHeatManager), "GetTemperatureOutcomeFor", new Type[] { typeof(IntVec3), typeof(float) })]
     public static class ProxyHeatManager_GetTemperatureOutcomeFor_Patch
     {
-        public static void Postfix(IntVec3 cell, ref float __result, ProxyHeatManager __instance)
+        [HarmonyTranspiler]
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
         {
-            if (__instance.temperatureSources.TryGetValue(cell, out List<CompTemperatureSource> tempSources))
+            var codes = new List<CodeInstruction>(instructions);
+            Label? targetLabel = null;
+            int removeStartIndex = -1;
+
+            for (int i = 0; i < codes.Count; i++)
             {
-                var tempResults = new List<float>();
-                foreach (var tempSourceCandidate in tempSources)
+                if (codes[i].opcode == OpCodes.Brfalse_S && codes[i].operand is Label label)
                 {
-                    var tempResult = __result;
-                    var props = tempSourceCandidate.Props;
-                    var tempOutcome = tempSourceCandidate.TemperatureOutcome;
-                    if (tempOutcome != 0)
+                    targetLabel = label;
+                }
+
+                if (targetLabel.HasValue)
+                {
+                    for (int j = 0; j < codes.Count; j++)
                     {
-                        if (!(props.maxTemperature.HasValue && __result >= props.maxTemperature.Value && tempOutcome > 0) &&
-                            !(props.minTemperature.HasValue && props.minTemperature.Value >= __result && tempOutcome < 0))
+                        if (codes[j].labels.Contains(targetLabel.Value))
                         {
-                            tempResult += tempOutcome;
+                            removeStartIndex = j;
+                            break;
+                        }
+                    }
+                }
 
-                            if (props.maxTemperature.HasValue)
+                if (targetLabel.HasValue && removeStartIndex != -1)
+                {
+                    if (codes[removeStartIndex].opcode == OpCodes.Newobj)
+                    {
+                        for (int k = 0; k < codes.Count; k++)
+                        {
+                            if (codes[k].opcode == OpCodes.Brfalse_S && codes[k].operand is Label checkLabel && checkLabel.GetHashCode() == targetLabel.GetHashCode())
                             {
-                                tempResult = Math.Min(tempResult, props.maxTemperature.Value);
-                            }
+                                codes[k].opcode = OpCodes.Nop;
+                                codes[k].operand = null;
 
-                            if (props.minTemperature.HasValue)
-                            {
-                                tempResult = Math.Max(tempResult, props.minTemperature.Value);
+                                if (k + 1 + 4 <= codes.Count)
+                                {
+                                    codes.RemoveRange(k + 1, 4);
+                                }
+                                break;
                             }
                         }
                     }
-                    tempResults.Add(tempResult);
-                }
-                if (tempResults.Count > 1)
-                {
-                    __result = tempResults.Average();
-                }
-                else if (tempResults.Count == 1)
-                {
-                    __result = tempResults[0];
+                    targetLabel = null;
+                    removeStartIndex = -1;
+
                 }
             }
+            return codes.AsEnumerable();
         }
     }
 
-    [HarmonyPatch(typeof(CompTemperatureSource), "RecalculateAffectedCells")]
-    public static class CompTemperatureSource_RecalculateAffectedCells_Patch
+        public class ProxyHeatManager : MapComponent
     {
-        private static readonly FieldInfo affectedCellsField = typeof(CompTemperatureSource).GetField("affectedCells", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo affectedCellsListField = typeof(CompTemperatureSource).GetField("affectedCellsList", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo mapField = typeof(CompTemperatureSource).GetField("map", BindingFlags.NonPublic | BindingFlags.Instance);
+        public ProxyHeatManager(Map map) : base(map) { }
 
-        public static void Postfix(CompTemperatureSource __instance)
+        public void MarkDirty(CompTemperatureSource source) { }
+
+        public float GetTemperatureOutcomeFor(IntVec3 cell, float result) { return 0; }
+    }
+
+    public class CompTemperatureSource : ThingComp
+    {
+        public CompProperties_TemperatureSource Props => (CompProperties_TemperatureSource)props;
+        public float TemperatureOutcome { get { return 0; } }
+
+    }
+
+    public class CompProperties_TemperatureSource : CompProperties
+    {
+        public float? minTemperature;
+        public float? maxTemperature;
+        public CompProperties_TemperatureSource()
         {
-            HashSet<IntVec3> affectedCells = (HashSet<IntVec3>)affectedCellsField.GetValue(__instance);
-            List<IntVec3> affectedCellsList = (List<IntVec3>)affectedCellsListField.GetValue(__instance);
-            Map map = (Map)mapField.GetValue(__instance);
-
-            affectedCells.RemoveWhere(cell => cell.GetEdifice(map) != null);
-            affectedCellsList.RemoveAll(cell => cell.GetEdifice(map) != null);
-
-            affectedCellsList.Clear();
-            affectedCellsList.AddRange(affectedCells);
+            compClass = typeof(CompTemperatureSource);
         }
+    }
+    public static class ProxyHeatMod
+    {
+        public static ProxyHeatSettings settings = new ProxyHeatSettings();
+    }
+
+    public class ProxyHeatSettings
+    {
+        public bool enableProxyHeatEffectIndoors;
     }
 
 }
